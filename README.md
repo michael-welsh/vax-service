@@ -1,2 +1,2 @@
 # vax-service
-python backend for the status of Hong Kong Covid vaccinations
+python based backend for the vaccination count in Hong Kong
