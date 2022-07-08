@@ -5,7 +5,7 @@ import os
 db = None
 
 def get_db_connection():
-    global db
+    #global db
     db = db or init_connection_engine()
     return db
 

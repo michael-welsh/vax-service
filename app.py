@@ -1,7 +1,7 @@
 import flask
 import logging
-from mysql.connector import MySQLConnection, Error
-from flask import jsonify, json
+from mysql.connector import Error
+from flask import json
 from lib.dbconnection import get_db_connection
 from lib.scraper import scrape
 
@@ -15,18 +15,10 @@ logging.basicConfig(filename='logs/covid_scrape_service.log', level=logging.WARN
 @app.route('/api/data', methods=['GET'])
 def get_data():
 
-
     try:
         with db.connect() as conn:
 
             rv = conn.execute( "Select * from HK_SHOTS order by DATE" ).fetchall()
-
-            current = {}
-            previous = {'date': 0, 'total': 0, 'first': 0, 'second': 0 }
-            diff = {'date': 0, 'total': 0, 'first': 0, 'second': 0 }
-            diff_total = 0
-            diff_first = 0
-            diff_second = 0
 
             dates_arr = []
             totals_arr = []
@@ -39,13 +31,6 @@ def get_data():
                 totals_arr.append(result[1])
                 firsts_arr.append(result[2])
                 seconds_arr.append(result[3])
-
-                current = {'date': result[0], 'total': result[1], 'first': result[2], 'second': result[3] }
-                diff_total = current['total'] - previous['total']
-                diff_first = current['first'] - previous['first']
-                diff_second = current['second'] - previous['second']
-                diff = {'date': current['date'], 'total': diff_total, 'first': diff_first, 'second': diff_second }
-                previous = current
 
     except Error as error:
         #logging.error(error)
@@ -86,7 +71,6 @@ def get_delta():
                 diff_total = current['total'] - previous['total']
                 diff_first = current['first'] - previous['first']
                 diff_second = current['second'] - previous['second']
-                diff = {'date': current['date'], 'total': diff_total, 'first': diff_first, 'second': diff_second }
                 previous = current
 
                 if x > 0:
@@ -123,7 +107,6 @@ def get_percentage():
             rv = conn.execute("Select * from HK_SHOTS order by DATE DESC").fetchall()
 
             result = rv[0]
-            report = {}
 
             report_date = result[0].strftime("%d/%m/%Y")
             first_shot_total = result[2]
