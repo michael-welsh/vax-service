@@ -2,16 +2,15 @@ import flask
 import logging
 from mysql.connector import MySQLConnection, Error
 from flask import jsonify, json
-from dbconnection import get_db_connection
-from scraper import scrape
-import google.cloud
-from google.cloud import firestore
+from lib.dbconnection import get_db_connection
+from lib.scraper import scrape
+
 
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
 
-logging.basicConfig(filename='covid_scrape_service.log', level=logging.WARNING)
+logging.basicConfig(filename='logs/covid_scrape_service.log', level=logging.WARNING)
 
 @app.route('/api/data', methods=['GET'])
 def get_data():
@@ -257,53 +256,6 @@ def do_scrape():
     return 'success'
 
 
-
-@app.route('/api/migrate', methods=['GET'])
-def migrate_data():
-
-
-    cred = firestore.Certificate("cloudaxis-website-b95a4a0313af.json")
-
-            current = {}
-            previous = {'date': 0, 'total': 0, 'first': 0, 'second': 0 }
-            diff = {'date': 0, 'total': 0, 'first': 0, 'second': 0 }
-            diff_total = 0
-            diff_first = 0
-            diff_second = 0
-
-            dates_arr = []
-            totals_arr = []
-            firsts_arr = []
-            seconds_arr = []
-
-            for result in rv:
-
-                dates_arr.append(result[0])
-                totals_arr.append(result[1])
-                firsts_arr.append(result[2])
-                seconds_arr.append(result[3])
-
-                current = {'date': result[0], 'total': result[1], 'first': result[2], 'second': result[3] }
-                diff_total = current['total'] - previous['total']
-                diff_first = current['first'] - previous['first']
-                diff_second = current['second'] - previous['second']
-                diff = {'date': current['date'], 'total': diff_total, 'first': diff_first, 'second': diff_second }
-                previous = current
-
-    except Error as error:
-        #logging.error(error)
-        print(error)
-
-    all_data = {'dates': dates_arr, 'totals': totals_arr, 'firsts': firsts_arr, 'seconds': seconds_arr}
-
-    response = app.response_class(
-        response=json.dumps(all_data),
-        status=200,
-        mimetype='application/json'
-    )
-    response.headers.add('Access-Control-Allow-Origin', '*')
-
-    return response
 
 db = None
 

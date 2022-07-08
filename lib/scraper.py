@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from mysql.connector import MySQLConnection, Error
-from dbconnection import get_db_connection
+from lib.dbconnection import get_db_connection
 import sqlalchemy
 
 
