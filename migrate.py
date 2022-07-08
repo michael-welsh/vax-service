@@ -1,7 +1,6 @@
 import logging
-from mysql.connector import MySQLConnection, Error
+from mysql.connector import Error
 from lib.dbconnection import get_db_connection
-import google.cloud
 from google.cloud import datastore
 
 

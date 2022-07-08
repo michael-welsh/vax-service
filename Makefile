@@ -6,10 +6,7 @@ config:
 	source ~/.virtualenvs/vax-service/bin/activate
 	
 lint: 
-	pylint --disable=R,C *.py XXX
-
-test:
-	python -m pytest -vv --cov=XXX test_*.py
+	pylint --disable=R,C *.py *.py lib/*.py
 
 format:
 	black *.py XXX/*.py
