@@ -6,4 +6,5 @@ __pycache__
 *.log
 logs*
 *.pyc
+env.sh
 env.list
