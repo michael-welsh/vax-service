@@ -1,9 +1,6 @@
 import sqlalchemy
 import os
 
-# Serves as a singleton for the pooled connections
-db = None
-
 def get_db_connection():
     #global db
     db = db or init_connection_engine()

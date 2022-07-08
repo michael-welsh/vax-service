@@ -101,6 +101,8 @@ def get_delta():
 @app.route('/api/percentage', methods=['GET'])
 def get_percentage():
 
+    report = {}
+
     try:
         with db.connect() as conn:
 
@@ -244,7 +246,7 @@ db = None
 
 @app.before_first_request
 def init_pool():
-    global db
+    #global db
     db = db or get_db_connection()
 
 if __name__ == '__main__':
