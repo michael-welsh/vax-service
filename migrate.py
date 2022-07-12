@@ -33,11 +33,11 @@ def migrate():
                 # Prepares the new entity
                 task = datastore.Entity(key=task_key)
                 task["date"] = result[0]
-                task["first"] = result[1]
-                task["first_daily"] = result[2]
+                task["first"] = result[2]
+                task["first_daily"] = result[4]
                 task["second"] = result[3]
-                task["second_daily"] = result[4]
-                task["total"] = result[5]
+                task["second_daily"] = result[5]
+                task["total"] = result[1]
                 task["total_daily"] = result[6]
 
                 # Saves the entity
@@ -52,6 +52,24 @@ def migrate():
     return "success"
 
 
+def get_back():
+
+    print("pulling data")
+
+    client = datastore.Client()
+
+    key = client.key("Task", "shot")
+    task = client.get(key)
+
+    print(task)
+
+def run_query(client):
+    # [START datastore_run_query]
+    query = client.query()
+    results = list(query.fetch())
+    # [END datastore_run_query]
+
+    return results
 
 if __name__ == '__main__':
     migrate()

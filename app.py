@@ -4,6 +4,7 @@ from mysql.connector import Error
 from flask import json
 from lib.dbconnection import get_db_connection
 from lib.scraper import scrape
+from google.cloud import datastore
 
 
 
@@ -16,21 +17,27 @@ logging.basicConfig(filename='logs/covid_scrape_service.log', level=logging.WARN
 def get_data():
 
     try:
-        with db.connect() as conn:
+        client = datastore.Client("cloudaxis-website")
 
-            rv = conn.execute( "Select * from HK_SHOTS order by DATE" ).fetchall()
+        query = client.query(kind="shot")
+        query.order = ['date']
+        results = list(query.fetch())
 
-            dates_arr = []
-            totals_arr = []
-            firsts_arr = []
-            seconds_arr = []
+        dates_arr = []
+        totals_arr = []
+        firsts_arr = []
+        seconds_arr = []
 
-            for result in rv:
+        count = 0
 
-                dates_arr.append(result[0])
-                totals_arr.append(result[1])
-                firsts_arr.append(result[2])
-                seconds_arr.append(result[3])
+        for r in results:
+            d = dict(results[count])
+
+            dates_arr.append(d['date'])
+            totals_arr.append(d['total'])
+            firsts_arr.append(d['first'])
+            seconds_arr.append(d['second'])
+            count += 1
 
     except Error as error:
         #logging.error(error)
@@ -51,35 +58,38 @@ def get_data():
 def get_delta():
 
     try:
-        with db.connect() as conn:
+        client = datastore.Client("cloudaxis-website")
 
-            rv = conn.execute("Select * from HK_SHOTS order by DATE").fetchall()
+        query = client.query(kind="shot")
+        query.order = ['date']
+        results = list(query.fetch())
 
-            previous = {'date': 0, 'total': 0, 'first': 0, 'second': 0 }
+        previous = {'date': 0, 'total': 0, 'first': 0, 'second': 0 }
 
-            dates_arr = []
-            diff_total_arr = []
-            diff_first_arr = []
-            diff_second_arr = []
+        dates_arr = []
+        diff_total_arr = []
+        diff_first_arr = []
+        diff_second_arr = []
 
-            # Skip the first iteration to avoid skewing the data
-            x = 0
+        # Skip the first iteration to avoid skewing the data
+        count = 0
 
-            for result in rv:
+        for r in results:
+            res = dict(results[count])
 
-                current = {'date': result[0], 'total': result[1], 'first': result[2], 'second': result[3] }
-                diff_total = current['total'] - previous['total']
-                diff_first = current['first'] - previous['first']
-                diff_second = current['second'] - previous['second']
-                previous = current
+            current = {'date': res['date'], 'total': res['total'], 'first': res['first'], 'second': res['second'] }
+            diff_total = current['total'] - previous['total']
+            diff_first = current['first'] - previous['first']
+            diff_second = current['second'] - previous['second']
+            previous = current
 
-                if x > 0:
-                    dates_arr.append(result[0].strftime("%d/%m"))
-                    diff_total_arr.append(diff_total)
-                    diff_first_arr.append(diff_first)
-                    diff_second_arr.append(diff_second)
+            if count > 0:
+                dates_arr.append(res['date'].strftime("%d/%m"))
+                diff_total_arr.append(diff_total)
+                diff_first_arr.append(diff_first)
+                diff_second_arr.append(diff_second)
 
-                x += 1
+            count += 1
 
     except Error as error:
         #logging.error(error)
@@ -104,21 +114,23 @@ def get_percentage():
     report = {}
 
     try:
-        with db.connect() as conn:
 
-            rv = conn.execute("Select * from HK_SHOTS order by DATE DESC").fetchall()
+        client = datastore.Client("cloudaxis-website")
 
-            result = rv[0]
+        query = client.query(kind="shot")
+        query.order = ['-date'] # DESC
+        result = list(query.fetch(limit=1))
+        last_date = dict(result[0])
 
-            report_date = result[0].strftime("%d/%m/%Y")
-            first_shot_total = result[2]
-            second_shot_total = result[3]
+        report_date = last_date['date'].strftime("%d/%m/%Y")
+        first_shot_total = last_date['first']
+        second_shot_total = last_date['second']
 
-            hk_population = 7550515
-            first_shot_percent = "{:.2%}".format(first_shot_total / hk_population)
-            second_shot_percent = "{:.2%}".format(second_shot_total / hk_population)
+        hk_population = 7550515
+        first_shot_percent = "{:.2%}".format(first_shot_total / hk_population)
+        second_shot_percent = "{:.2%}".format(second_shot_total / hk_population)
 
-            report = {'date': report_date, 'first_shot_percentage': first_shot_percent, 'second_shot_percentage': second_shot_percent }
+        report = {'date': report_date, 'first_shot_percentage': first_shot_percent, 'second_shot_percentage': second_shot_percent }
 
 
     except Error as error:
@@ -140,43 +152,43 @@ def get_percentage():
 # Since the daily shots administered can only be calculated by determining how many shots
 # were administered the day before, it should be done after all scraping has finished,
 # since the scraping does not necessarily happen in chronological order
-@app.route('/api/correct_delta', methods=['GET'])
-def correct_delta():
+# @app.route('/api/correct_delta', methods=['GET'])
+# def correct_delta():
 
-    try:
-        with db.connect() as conn:
+#     try:
+#         with db.connect() as conn:
 
-            rv = conn.execute("Select * from HK_SHOTS order by DATE").fetchall()
+#             rv = conn.execute("Select * from HK_SHOTS order by DATE").fetchall()
 
-            # We need to hardcode the initial values to something close to the following day, otherwise
-            # the first entries will be very high values (i.e. 420000 daily first shots)
-            previous = {'total': 516100, 'first': 470000, 'second': 67000 }
+#             # We need to hardcode the initial values to something close to the following day, otherwise
+#             # the first entries will be very high values (i.e. 420000 daily first shots)
+#             previous = {'total': 516100, 'first': 470000, 'second': 67000 }
 
-            for result in rv:
+#             for result in rv:
 
-                current = {'date': result[0], 'total': result[1], 'first': result[2], 'second': result[3] }
-                diff_total = current['total'] - previous['total']
-                diff_first = current['first'] - previous['first']
-                diff_second = current['second'] - previous['second']
-                previous = current
+#                 current = {'date': result[0], 'total': result[1], 'first': result[2], 'second': result[3] }
+#                 diff_total = current['total'] - previous['total']
+#                 diff_first = current['first'] - previous['first']
+#                 diff_second = current['second'] - previous['second']
+#                 previous = current
 
-                sql = "Update HK_SHOTS set first_daily = {}, second_daily = {}, total_daily = {} where Date = '{}'".format(
-                    diff_first, diff_second, diff_total, result[0])
-                conn.execute(sql)
+#                 sql = "Update HK_SHOTS set first_daily = {}, second_daily = {}, total_daily = {} where Date = '{}'".format(
+#                     diff_first, diff_second, diff_total, result[0])
+#                 conn.execute(sql)
 
-    except Error as error:
-        #logging.error(error)
-        print(error)
+#     except Error as error:
+#         #logging.error(error)
+#         print(error)
 
-    finally:
-        response = app.response_class(
-            response='success',
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers.add('Access-Control-Allow-Origin', '*')
+#     finally:
+#         response = app.response_class(
+#             response='success',
+#             status=200,
+#             mimetype='application/json'
+#         )
+#         response.headers.add('Access-Control-Allow-Origin', '*')
 
-    return response
+#     return response
 
 
 @app.route('/api/averages', methods=['GET'])
@@ -185,37 +197,52 @@ def get_averages():
     report = {}
 
     try:
-        with db.connect() as conn:
 
-            rv = conn.execute("Select first_daily, second_daily from HK_SHOTS order by DATE DESC").fetchall()
-            first_shot_7_day_agg = 0
-            second_shot_7_day_agg = 0
-            first_shot_agg = 0
-            second_shot_agg = 0
-            counter = 0
+        client = datastore.Client("cloudaxis-website")
 
-            for result in rv:
-                value_first = result[0]
-                value_second = result[1]
+        query = client.query(kind="shot")
+        query.order = ['-date'] # DESC
+        results = list(query.fetch())
 
-                first_shot_agg += value_first
-                second_shot_agg += value_second
+        first_shot_7_day_agg = 0
+        second_shot_7_day_agg = 0
+        first_shot_agg = 0
+        second_shot_agg = 0
+        count = 0
 
-                if(counter < 7):
-                    first_shot_7_day_agg += value_first
-                    second_shot_7_day_agg += value_second
+        for result in results:
+            d = dict(results[count])
 
-                counter += 1
+            value_first = d['first_daily']
+            value_second = d['second_daily']
 
-            first_shot_7_day_average = first_shot_7_day_agg / 7
-            second_shot_7_day_average = second_shot_7_day_agg / 7
-            first_shot_total_average = first_shot_agg / counter
-            second_shot_total_average = second_shot_agg / counter
+            print(value_first)
+            print(value_second)
 
-            report = {'first_shot_7_day_average': round(first_shot_7_day_average),
-                      'second_shot_7_day_average': round(second_shot_7_day_average),
-                      'first_shot_total_average': round(first_shot_total_average),
-                      'second_shot_total_average': round(second_shot_total_average)}
+            first_shot_agg += value_first
+            second_shot_agg += value_second
+
+            if(count < 7):
+                first_shot_7_day_agg += value_first
+                second_shot_7_day_agg += value_second
+
+            count += 1
+
+        first_shot_7_day_average = first_shot_7_day_agg / 7
+        second_shot_7_day_average = second_shot_7_day_agg / 7
+        first_shot_total_average = first_shot_agg / count
+        second_shot_total_average = second_shot_agg / count
+
+        print(first_shot_7_day_average)
+        print(second_shot_7_day_average)
+        print(first_shot_total_average)
+        print(second_shot_total_average)
+
+
+        report = {'first_shot_7_day_average': round(first_shot_7_day_average),
+                    'second_shot_7_day_average': round(second_shot_7_day_average),
+                    'first_shot_total_average': round(first_shot_total_average),
+                    'second_shot_total_average': round(second_shot_total_average)}
 
     except Error as error:
         logging.error(error)
@@ -231,23 +258,6 @@ def get_averages():
     return response
 
 
-
-
-@app.route('/api/update', methods=['GET'])
-def do_scrape():
-    scrape()
-    correct_delta()
-
-    return 'success'
-
-
-
-db = None
-
-@app.before_first_request
-def init_pool():
-    #global db
-    db = db or get_db_connection()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
