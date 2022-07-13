@@ -7,14 +7,11 @@ import os
 ##
 #db = None
 
-#def get_db_connection():
-#    global db
-#    db = db or init_connection_engine()
-#    return db
-
-# Dummy method to maintain Lint compatibility
 def get_db_connection():
-    return None
+#    global db
+    db = init_connection_engine()
+    return db
+
 
 def init_connection_engine():
     db_config = {
