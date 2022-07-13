@@ -12,6 +12,10 @@ import os
 #    db = db or init_connection_engine()
 #    return db
 
+# Dummy method to maintain Lint compatibility
+def get_db_connection():
+    return None
+
 def init_connection_engine():
     db_config = {
         "pool_size": 5,
