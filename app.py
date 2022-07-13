@@ -1,8 +1,6 @@
 import flask
 import logging
-from mysql.connector import Error
 from flask import json
-from lib.dbconnection import get_db_connection
 from lib.scraper import scrape
 from google.cloud import datastore
 
