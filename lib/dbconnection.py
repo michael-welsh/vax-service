@@ -1,6 +1,10 @@
 import sqlalchemy
 import os
 
+
+##
+# This is not deprecated as the app is using GCP Cloud Datastore for persistence
+##
 db = None
 
 def get_db_connection():
