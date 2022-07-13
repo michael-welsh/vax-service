@@ -5,12 +5,12 @@ import os
 ##
 # This is not deprecated as the app is using GCP Cloud Datastore for persistence
 ##
-db = None
+#db = None
 
-def get_db_connection():
-    global db
-    db = db or init_connection_engine()
-    return db
+#def get_db_connection():
+#    global db
+#    db = db or init_connection_engine()
+#    return db
 
 def init_connection_engine():
     db_config = {

@@ -1,7 +1,6 @@
 import flask
 import logging
 from flask import json
-from lib.scraper import scrape
 from google.cloud import datastore
 
 
@@ -14,32 +13,28 @@ logging.basicConfig(filename='logs/covid_scrape_service.log', level=logging.WARN
 @app.route('/api/data', methods=['GET'])
 def get_data():
 
-    try:
-        client = datastore.Client("cloudaxis-website")
+    client = datastore.Client("cloudaxis-website")
 
-        query = client.query(kind="shot")
-        query.order = ['date']
-        results = list(query.fetch())
+    query = client.query(kind="shot")
+    query.order = ['date']
+    results = list(query.fetch())
 
-        dates_arr = []
-        totals_arr = []
-        firsts_arr = []
-        seconds_arr = []
+    dates_arr = []
+    totals_arr = []
+    firsts_arr = []
+    seconds_arr = []
 
-        count = 0
+    count = 0
 
-        for r in results:
-            d = dict(results[count])
+    for r in results:
+        d = dict(r)
 
-            dates_arr.append(d['date'])
-            totals_arr.append(d['total'])
-            firsts_arr.append(d['first'])
-            seconds_arr.append(d['second'])
-            count += 1
+        dates_arr.append(d['date'])
+        totals_arr.append(d['total'])
+        firsts_arr.append(d['first'])
+        seconds_arr.append(d['second'])
+        count += 1
 
-    except Error as error:
-        #logging.error(error)
-        print(error)
 
     all_data = {'dates': dates_arr, 'totals': totals_arr, 'firsts': firsts_arr, 'seconds': seconds_arr}
 
@@ -55,53 +50,47 @@ def get_data():
 @app.route('/api/delta', methods=['GET'])
 def get_delta():
 
-    try:
-        client = datastore.Client("cloudaxis-website")
+    client = datastore.Client("cloudaxis-website")
 
-        query = client.query(kind="shot")
-        query.order = ['date']
-        results = list(query.fetch())
+    query = client.query(kind="shot")
+    query.order = ['date']
+    results = list(query.fetch())
 
-        previous = {'date': 0, 'total': 0, 'first': 0, 'second': 0 }
+    previous = {'date': 0, 'total': 0, 'first': 0, 'second': 0 }
 
-        dates_arr = []
-        diff_total_arr = []
-        diff_first_arr = []
-        diff_second_arr = []
+    dates_arr = []
+    diff_total_arr = []
+    diff_first_arr = []
+    diff_second_arr = []
 
-        # Skip the first iteration to avoid skewing the data
-        count = 0
+    # Skip the first iteration to avoid skewing the data
+    count = 0
 
-        for r in results:
-            res = dict(results[count])
+    for r in results:
+        res = dict(r)
 
-            current = {'date': res['date'], 'total': res['total'], 'first': res['first'], 'second': res['second'] }
-            diff_total = current['total'] - previous['total']
-            diff_first = current['first'] - previous['first']
-            diff_second = current['second'] - previous['second']
-            previous = current
+        current = {'date': res['date'], 'total': res['total'], 'first': res['first'], 'second': res['second'] }
+        diff_total = current['total'] - previous['total']
+        diff_first = current['first'] - previous['first']
+        diff_second = current['second'] - previous['second']
+        previous = current
 
-            if count > 0:
-                dates_arr.append(res['date'].strftime("%d/%m"))
-                diff_total_arr.append(diff_total)
-                diff_first_arr.append(diff_first)
-                diff_second_arr.append(diff_second)
+        if count > 0:
+            dates_arr.append(res['date'].strftime("%d/%m"))
+            diff_total_arr.append(diff_total)
+            diff_first_arr.append(diff_first)
+            diff_second_arr.append(diff_second)
 
-            count += 1
+        count += 1
 
-    except Error as error:
-        #logging.error(error)
-        print(error)
+    all_data = {'dates': dates_arr, 'totals': diff_total_arr, 'firsts': diff_first_arr, 'seconds': diff_second_arr}
 
-    finally:
-        all_data = {'dates': dates_arr, 'totals': diff_total_arr, 'firsts': diff_first_arr, 'seconds': diff_second_arr}
-
-        response = app.response_class(
-            response=json.dumps(all_data),
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers.add('Access-Control-Allow-Origin', '*')
+    response = app.response_class(
+        response=json.dumps(all_data),
+        status=200,
+        mimetype='application/json'
+    )
+    response.headers.add('Access-Control-Allow-Origin', '*')
 
     return response
 
@@ -111,38 +100,29 @@ def get_percentage():
 
     report = {}
 
-    try:
+    client = datastore.Client("cloudaxis-website")
 
-        client = datastore.Client("cloudaxis-website")
+    query = client.query(kind="shot")
+    query.order = ['-date'] # DESC
+    result = list(query.fetch(limit=1))
+    last_date = dict(result[0])
 
-        query = client.query(kind="shot")
-        query.order = ['-date'] # DESC
-        result = list(query.fetch(limit=1))
-        last_date = dict(result[0])
+    report_date = last_date['date'].strftime("%d/%m/%Y")
+    first_shot_total = last_date['first']
+    second_shot_total = last_date['second']
 
-        report_date = last_date['date'].strftime("%d/%m/%Y")
-        first_shot_total = last_date['first']
-        second_shot_total = last_date['second']
+    hk_population = 7550515
+    first_shot_percent = "{:.2%}".format(first_shot_total / hk_population)
+    second_shot_percent = "{:.2%}".format(second_shot_total / hk_population)
 
-        hk_population = 7550515
-        first_shot_percent = "{:.2%}".format(first_shot_total / hk_population)
-        second_shot_percent = "{:.2%}".format(second_shot_total / hk_population)
+    report = {'date': report_date, 'first_shot_percentage': first_shot_percent, 'second_shot_percentage': second_shot_percent }
 
-        report = {'date': report_date, 'first_shot_percentage': first_shot_percent, 'second_shot_percentage': second_shot_percent }
-
-
-    except Error as error:
-        #logging.error(error)
-        print(error)
-
-    finally:
-
-        response = app.response_class(
-            response=json.dumps(report),
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers.add('Access-Control-Allow-Origin', '*')
+    response = app.response_class(
+        response=json.dumps(report),
+        status=200,
+        mimetype='application/json'
+    )
+    response.headers.add('Access-Control-Allow-Origin', '*')
 
     return response
 
@@ -194,64 +174,59 @@ def get_averages():
 
     report = {}
 
-    try:
+    client = datastore.Client("cloudaxis-website")
 
-        client = datastore.Client("cloudaxis-website")
+    query = client.query(kind="shot")
+    query.order = ['-date'] # DESC
+    results = list(query.fetch())
 
-        query = client.query(kind="shot")
-        query.order = ['-date'] # DESC
-        results = list(query.fetch())
+    first_shot_7_day_agg = 0
+    second_shot_7_day_agg = 0
+    first_shot_agg = 0
+    second_shot_agg = 0
+    count = 0
 
-        first_shot_7_day_agg = 0
-        second_shot_7_day_agg = 0
-        first_shot_agg = 0
-        second_shot_agg = 0
-        count = 0
+    for result in results:
+        d = dict(result)
 
-        for result in results:
-            d = dict(results[count])
+        value_first = d['first_daily']
+        value_second = d['second_daily']
 
-            value_first = d['first_daily']
-            value_second = d['second_daily']
+        print(value_first)
+        print(value_second)
 
-            print(value_first)
-            print(value_second)
+        first_shot_agg += value_first
+        second_shot_agg += value_second
 
-            first_shot_agg += value_first
-            second_shot_agg += value_second
+        if(count < 7):
+            first_shot_7_day_agg += value_first
+            second_shot_7_day_agg += value_second
 
-            if(count < 7):
-                first_shot_7_day_agg += value_first
-                second_shot_7_day_agg += value_second
+        count += 1
 
-            count += 1
+    first_shot_7_day_average = first_shot_7_day_agg / 7
+    second_shot_7_day_average = second_shot_7_day_agg / 7
+    first_shot_total_average = first_shot_agg / count
+    second_shot_total_average = second_shot_agg / count
 
-        first_shot_7_day_average = first_shot_7_day_agg / 7
-        second_shot_7_day_average = second_shot_7_day_agg / 7
-        first_shot_total_average = first_shot_agg / count
-        second_shot_total_average = second_shot_agg / count
-
-        print(first_shot_7_day_average)
-        print(second_shot_7_day_average)
-        print(first_shot_total_average)
-        print(second_shot_total_average)
+    print(first_shot_7_day_average)
+    print(second_shot_7_day_average)
+    print(first_shot_total_average)
+    print(second_shot_total_average)
 
 
-        report = {'first_shot_7_day_average': round(first_shot_7_day_average),
-                    'second_shot_7_day_average': round(second_shot_7_day_average),
-                    'first_shot_total_average': round(first_shot_total_average),
-                    'second_shot_total_average': round(second_shot_total_average)}
+    report = {'first_shot_7_day_average': round(first_shot_7_day_average),
+                'second_shot_7_day_average': round(second_shot_7_day_average),
+                'first_shot_total_average': round(first_shot_total_average),
+                'second_shot_total_average': round(second_shot_total_average)}
 
-    except Error as error:
-        logging.error(error)
-    finally:
 
-        response = app.response_class(
-            response=json.dumps(report),
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers.add('Access-Control-Allow-Origin', '*')
+    response = app.response_class(
+        response=json.dumps(report),
+        status=200,
+        mimetype='application/json'
+    )
+    response.headers.add('Access-Control-Allow-Origin', '*')
 
     return response
 
