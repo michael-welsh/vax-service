@@ -4,19 +4,19 @@ from flask import json
 from google.cloud import datastore
 
 
-
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
 
-logging.basicConfig(filename='logs/covid_scrape_service.log', level=logging.WARNING)
+logging.basicConfig(filename="/usr/src/app/logs/covid_scrape_service.log", level=logging.WARNING)
 
-@app.route('/api/data', methods=['GET'])
+
+@app.route("/api/data", methods=["GET"])
 def get_data():
 
     client = datastore.Client("cloudaxis-website")
 
     query = client.query(kind="shot")
-    query.order = ['date']
+    query.order = ["date"]
     results = list(query.fetch())
 
     dates_arr = []
@@ -29,34 +29,37 @@ def get_data():
     for r in results:
         d = dict(r)
 
-        dates_arr.append(d['date'])
-        totals_arr.append(d['total'])
-        firsts_arr.append(d['first'])
-        seconds_arr.append(d['second'])
+        dates_arr.append(d["date"])
+        totals_arr.append(d["total"])
+        firsts_arr.append(d["first"])
+        seconds_arr.append(d["second"])
         count += 1
 
-
-    all_data = {'dates': dates_arr, 'totals': totals_arr, 'firsts': firsts_arr, 'seconds': seconds_arr}
+    all_data = {
+        "dates": dates_arr,
+        "totals": totals_arr,
+        "firsts": firsts_arr,
+        "seconds": seconds_arr,
+    }
 
     response = app.response_class(
-        response=json.dumps(all_data),
-        status=200,
-        mimetype='application/json'
+        response=json.dumps(all_data), status=200, mimetype="application/json"
     )
-    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add("Access-Control-Allow-Origin", "*")
 
     return response
 
-@app.route('/api/delta', methods=['GET'])
+
+@app.route("/api/delta", methods=["GET"])
 def get_delta():
 
     client = datastore.Client("cloudaxis-website")
 
     query = client.query(kind="shot")
-    query.order = ['date']
+    query.order = ["date"]
     results = list(query.fetch())
 
-    previous = {'date': 0, 'total': 0, 'first': 0, 'second': 0 }
+    previous = {"date": 0, "total": 0, "first": 0, "second": 0}
 
     dates_arr = []
     diff_total_arr = []
@@ -69,33 +72,41 @@ def get_delta():
     for r in results:
         res = dict(r)
 
-        current = {'date': res['date'], 'total': res['total'], 'first': res['first'], 'second': res['second'] }
-        diff_total = current['total'] - previous['total']
-        diff_first = current['first'] - previous['first']
-        diff_second = current['second'] - previous['second']
+        current = {
+            "date": res["date"],
+            "total": res["total"],
+            "first": res["first"],
+            "second": res["second"],
+        }
+        diff_total = current["total"] - previous["total"]
+        diff_first = current["first"] - previous["first"]
+        diff_second = current["second"] - previous["second"]
         previous = current
 
         if count > 0:
-            dates_arr.append(res['date'].strftime("%d/%m"))
+            dates_arr.append(res["date"].strftime("%d/%m"))
             diff_total_arr.append(diff_total)
             diff_first_arr.append(diff_first)
             diff_second_arr.append(diff_second)
 
         count += 1
 
-    all_data = {'dates': dates_arr, 'totals': diff_total_arr, 'firsts': diff_first_arr, 'seconds': diff_second_arr}
+    all_data = {
+        "dates": dates_arr,
+        "totals": diff_total_arr,
+        "firsts": diff_first_arr,
+        "seconds": diff_second_arr,
+    }
 
     response = app.response_class(
-        response=json.dumps(all_data),
-        status=200,
-        mimetype='application/json'
+        response=json.dumps(all_data), status=200, mimetype="application/json"
     )
-    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add("Access-Control-Allow-Origin", "*")
 
     return response
 
 
-@app.route('/api/percentage', methods=['GET'])
+@app.route("/api/percentage", methods=["GET"])
 def get_percentage():
 
     report = {}
@@ -103,26 +114,28 @@ def get_percentage():
     client = datastore.Client("cloudaxis-website")
 
     query = client.query(kind="shot")
-    query.order = ['-date'] # DESC
+    query.order = ["-date"]  # DESC
     result = list(query.fetch(limit=1))
     last_date = dict(result[0])
 
-    report_date = last_date['date'].strftime("%d/%m/%Y")
-    first_shot_total = last_date['first']
-    second_shot_total = last_date['second']
+    report_date = last_date["date"].strftime("%d/%m/%Y")
+    first_shot_total = last_date["first"]
+    second_shot_total = last_date["second"]
 
     hk_population = 7550515
     first_shot_percent = "{:.2%}".format(first_shot_total / hk_population)
     second_shot_percent = "{:.2%}".format(second_shot_total / hk_population)
 
-    report = {'date': report_date, 'first_shot_percentage': first_shot_percent, 'second_shot_percentage': second_shot_percent }
+    report = {
+        "date": report_date,
+        "first_shot_percentage": first_shot_percent,
+        "second_shot_percentage": second_shot_percent,
+    }
 
     response = app.response_class(
-        response=json.dumps(report),
-        status=200,
-        mimetype='application/json'
+        response=json.dumps(report), status=200, mimetype="application/json"
     )
-    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add("Access-Control-Allow-Origin", "*")
 
     return response
 
@@ -169,7 +182,7 @@ def get_percentage():
 #     return response
 
 
-@app.route('/api/averages', methods=['GET'])
+@app.route("/api/averages", methods=["GET"])
 def get_averages():
 
     report = {}
@@ -177,7 +190,7 @@ def get_averages():
     client = datastore.Client("cloudaxis-website")
 
     query = client.query(kind="shot")
-    query.order = ['-date'] # DESC
+    query.order = ["-date"]  # DESC
     results = list(query.fetch())
 
     first_shot_7_day_agg = 0
@@ -189,8 +202,8 @@ def get_averages():
     for result in results:
         d = dict(result)
 
-        value_first = d['first_daily']
-        value_second = d['second_daily']
+        value_first = d["first_daily"]
+        value_second = d["second_daily"]
 
         print(value_first)
         print(value_second)
@@ -198,7 +211,7 @@ def get_averages():
         first_shot_agg += value_first
         second_shot_agg += value_second
 
-        if(count < 7):
+        if count < 7:
             first_shot_7_day_agg += value_first
             second_shot_7_day_agg += value_second
 
@@ -214,23 +227,20 @@ def get_averages():
     print(first_shot_total_average)
     print(second_shot_total_average)
 
-
-    report = {'first_shot_7_day_average': round(first_shot_7_day_average),
-                'second_shot_7_day_average': round(second_shot_7_day_average),
-                'first_shot_total_average': round(first_shot_total_average),
-                'second_shot_total_average': round(second_shot_total_average)}
-
+    report = {
+        "first_shot_7_day_average": round(first_shot_7_day_average),
+        "second_shot_7_day_average": round(second_shot_7_day_average),
+        "first_shot_total_average": round(first_shot_total_average),
+        "second_shot_total_average": round(second_shot_total_average),
+    }
 
     response = app.response_class(
-        response=json.dumps(report),
-        status=200,
-        mimetype='application/json'
+        response=json.dumps(report), status=200, mimetype="application/json"
     )
-    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add("Access-Control-Allow-Origin", "*")
 
     return response
 
 
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
