@@ -7,7 +7,7 @@ from google.cloud import datastore
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
 
-logging.basicConfig(filename="covid_scrape_service.log", level=logging.WARNING)
+logging.basicConfig(filename="logs/covid_scrape_service.log", level=logging.WARNING)
 
 
 @app.route("/api/data", methods=["GET"])
