@@ -9,6 +9,6 @@ lint:
 	pylint --disable=R,C *.py *.py lib/*.py
 
 format:
-	black *.py XXX/*.py
+	black *.py lib/*.py
 
 all: install lint format
