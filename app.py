@@ -1,13 +1,10 @@
 import flask
-import logging
 from flask import json
 from google.cloud import datastore
 
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
-
-logging.basicConfig(filename="logs/covid_scrape_service.log", level=logging.WARNING)
 
 
 @app.route("/api/data", methods=["GET"])
