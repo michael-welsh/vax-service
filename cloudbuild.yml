@@ -3,6 +3,7 @@ steps:
     entrypoint: docker
     args:
       - build
+      - '--no-cache'
       - '--tag=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA'
       - '--build-arg=${_DOCKER_20}'
       - '--file=Dockerfile-ro'
