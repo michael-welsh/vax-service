@@ -1,0 +1,21 @@
+##
+# As this app is not scraping data from the HK gov site anymore, there is no need to 
+# install the Chrome driver, which was creating a lot of bloat on the container. This
+# Dockerfile skips installation of the necessary scraping tools and only installs python. 
+##
+FROM python:3.8
+
+
+WORKDIR /usr/src/app
+COPY requirements.txt ./
+
+RUN pip3 install --upgrade pip  --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# expose port 8080
+EXPOSE 8080
+
+CMD [ "python3", "./app.py" ]
+
+
