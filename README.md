@@ -7,8 +7,9 @@ At the time of creation of this project, there was oddly no other site providing
 
 
 ### Stack
+This is a Flask python app that originally called a MySQL database. The data layer was later migrated to Cloud Datastore as it was cheaper to run and something new to do. 
 
-This is a python app that originally called a MySQL database. The data layer was later migrated to Cloud Datastore as it was cheaper to run and something new to do. 
+The scraping is done using BeautifulSoup and leverages Chrome and the Chromedriver for navigating to the HTML pages in question. 
 
 The python app is containerized and is built using GCP Cloud Build. Any commits to this repository will spark a new build and new version. 
 
@@ -18,7 +19,6 @@ The python app is containerized and is built using GCP Cloud Build. Any commits 
 3. clone project then run `make all`
 
 ### Project Scaffold
-
 Build out python project scaffold:
 
 * [Makefile](https://github.com/michael-welsh/vax-service/blob/main/Makefile)
@@ -26,7 +26,6 @@ Build out python project scaffold:
 * [Dockerfile](https://github.com/michael-welsh/vax-service/blob/main/Dockerfile)
 
 ### Cloud Build
-
 For reasons beyond my comprehension, the docker image created by Cloud Build did not deploy correctly. Running
 the build locally (even using the cloud-build-local tool) worked fine, but GCP builds could not find the structure
 of logs files and directories. As a result I took out logging as there wasn't much going on anyway. 
